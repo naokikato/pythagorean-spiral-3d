@@ -8,23 +8,51 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Theme variables ── */
+    :root {
+      --bg:         #0f1117;
+      --surface:    #1a1d27;
+      --border:     #2a2d3e;
+      --text:       #e0e0e0;
+      --text-muted: #6b7a99;
+      --text-val:   #a8b8d8;
+      --btn-bg:     #1e2233;
+      --btn-border: #2e3348;
+      --btn-text:   #9ba3c0;
+      --plot-bg:    #0f1117;
+    }
+    body.light {
+      --bg:         #f4f6fc;
+      --surface:    #ffffff;
+      --border:     #d0d5e8;
+      --text:       #1a1d2e;
+      --text-muted: #6b7899;
+      --text-val:   #334488;
+      --btn-bg:     #e8ecf8;
+      --btn-border: #c8ceea;
+      --btn-text:   #3a4468;
+      --plot-bg:    #f4f6fc;
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f1117;
-      color: #e0e0e0;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background 0.2s, color 0.2s;
     }
 
     header {
       padding: 10px 20px;
-      background: #1a1d27;
-      border-bottom: 1px solid #2a2d3e;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
+      transition: background 0.2s;
     }
 
     header h1 {
@@ -37,7 +65,7 @@
     .header-sep {
       width: 1px;
       height: 24px;
-      background: #2a2d3e;
+      background: var(--border);
     }
 
     /* View buttons */
@@ -47,15 +75,29 @@
     }
     .view-btn {
       padding: 5px 14px;
-      background: #1e2233;
-      border: 1px solid #2e3348;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
       border-radius: 4px;
-      color: #9ba3c0;
+      color: var(--btn-text);
       font-size: 12px;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .view-btn:hover { background: #252a40; color: #c5cde0; border-color: #3d6cf5; }
+    .view-btn:hover { filter: brightness(1.15); border-color: #3d6cf5; color: #3d6cf5; }
+
+    /* Theme toggle */
+    #theme-btn {
+      padding: 5px 12px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      border-radius: 4px;
+      color: var(--btn-text);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    #theme-btn:hover { filter: brightness(1.15); }
 
     /* Animation controls */
     .anim-group {
@@ -98,14 +140,14 @@
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      color: #6b7a99;
+      color: var(--text-muted);
     }
     .speed-group input[type=range] {
       width: 80px;
       accent-color: #3d6cf5;
       height: 4px;
     }
-    .speed-group span.val { min-width: 30px; color: #a8b8d8; font-size: 11px; }
+    .speed-group span.val { min-width: 30px; color: var(--text-val); font-size: 11px; }
 
     /* Main area */
     .main {
@@ -115,21 +157,20 @@
       overflow: hidden;
     }
 
-    #plot {
-      flex: 1;
-    }
+    #plot { flex: 1; }
 
     /* Stats bar */
     .stats-bar {
       padding: 5px 16px;
-      background: #1a1d27;
-      border-top: 1px solid #2a2d3e;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
       font-size: 12px;
-      color: #6b7a99;
+      color: var(--text-muted);
       display: flex;
       gap: 16px;
+      transition: background 0.2s;
     }
-    .stats-bar span b { color: #a8b8d8; }
+    .stats-bar span b { color: var(--text-val); }
   </style>
 </head>
 <body>
@@ -144,6 +185,8 @@
     <button class="view-btn" id="view-side">→ 横から</button>
     <button class="view-btn" id="view-default">⟳ リセット</button>
   </div>
+
+  <button id="theme-btn">☀ ライト</button>
 
   <div class="anim-group">
     <div class="speed-group">
@@ -173,21 +216,65 @@
 const DPR = window.devicePixelRatio || 1;
 const sz = n => Math.max(1, Math.round(n / DPR));
 
+// ─── Theme ─────────────────────────────────────────────────────
+let darkMode = true;
+
+const THEME = {
+  dark: {
+    bg: '#0f1117', axis: '#4a5568', grid: '#1e2a3a',
+    zeroline: '#2d3a4a', tickColor: '#6b7a99', titleColor: '#7c9ff5'
+  },
+  light: {
+    bg: '#f4f6fc', axis: '#8892b0', grid: '#d4d8ee',
+    zeroline: '#c0c8e0', tickColor: '#6b7899', titleColor: '#3a5ccf'
+  }
+};
+
+function applyTheme(dark) {
+  darkMode = dark;
+  document.body.classList.toggle('light', !dark);
+  document.getElementById('theme-btn').textContent = dark ? '☀ ライト' : '☾ ダーク';
+  const t = dark ? THEME.dark : THEME.light;
+  Plotly.relayout('plot', {
+    paper_bgcolor: t.bg,
+    plot_bgcolor:  t.bg,
+    'scene.bgcolor':             t.bg,
+    'scene.xaxis.color':         t.axis,
+    'scene.xaxis.gridcolor':     t.grid,
+    'scene.xaxis.zerolinecolor': t.zeroline,
+    'scene.xaxis.tickfont':      { color: t.tickColor, size: 10 },
+    'scene.xaxis.title.font':    { color: t.titleColor, size: 13 },
+    'scene.yaxis.color':         t.axis,
+    'scene.yaxis.gridcolor':     t.grid,
+    'scene.yaxis.zerolinecolor': t.zeroline,
+    'scene.yaxis.tickfont':      { color: t.tickColor, size: 10 },
+    'scene.yaxis.title.font':    { color: t.titleColor, size: 13 },
+    'scene.zaxis.color':         t.axis,
+    'scene.zaxis.gridcolor':     t.grid,
+    'scene.zaxis.zerolinecolor': t.zeroline,
+    'scene.zaxis.tickfont':      { color: t.tickColor, size: 10 },
+    'scene.zaxis.title.font':    { color: t.titleColor, size: 13 },
+  });
+}
+
+document.getElementById('theme-btn').addEventListener('click', () => applyTheme(!darkMode));
+
 // ─── Layout helpers ────────────────────────────────────────────
 function currentCamera() {
   return document.getElementById('plot')._fullLayout?.scene?.camera ?? null;
 }
 
 function buildLayout(camera) {
+  const t = darkMode ? THEME.dark : THEME.light;
   return {
-    paper_bgcolor: '#0f1117',
-    plot_bgcolor: '#0f1117',
+    paper_bgcolor: t.bg,
+    plot_bgcolor:  t.bg,
     margin: { l: 0, r: 0, t: 0, b: 0 },
     scene: {
       xaxis: axisStyle('X'),
       yaxis: axisStyle('Y'),
       zaxis: axisStyle('Z'),
-      bgcolor: '#0f1117',
+      bgcolor: t.bg,
       ...(camera ? { camera } : {})
     },
     uirevision: 'keep'
@@ -195,12 +282,13 @@ function buildLayout(camera) {
 }
 
 function axisStyle(title) {
+  const t = darkMode ? THEME.dark : THEME.light;
   return {
-    title: { text: title, font: { color: '#7c9ff5', size: 13 } },
-    color: '#4a5568',
-    gridcolor: '#1e2a3a',
-    zerolinecolor: '#2d3a4a',
-    tickfont: { color: '#6b7a99', size: 10 }
+    title: { text: title, font: { color: t.titleColor, size: 13 } },
+    color: t.axis,
+    gridcolor: t.grid,
+    zerolinecolor: t.zeroline,
+    tickfont: { color: t.tickColor, size: 10 }
   };
 }
 
