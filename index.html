@@ -168,6 +168,11 @@
 </div>
 
 <script>
+// DPR compensation: Plotly gl3d renders canvas at devicePixelRatio resolution
+// but marker sizes are in CSS pixels, so divide by DPR to keep visual size consistent.
+const DPR = window.devicePixelRatio || 1;
+const sz = n => Math.max(1, Math.round(n / DPR));
+
 // ─── Layout helpers ────────────────────────────────────────────
 function currentCamera() {
   return document.getElementById('plot')._fullLayout?.scene?.camera ?? null;
@@ -215,7 +220,7 @@ function buildHelixTrace() {
     hC.push('hsl(' + Math.round(angHue(ang)) + ',90%,55%)');
   }
   return { type:'scatter3d', mode:'markers', name:'円柱螺旋',
-    x:hX, y:hY, z:hZ, marker:{ color:hC, size:2, opacity:0.9 } };
+    x:hX, y:hY, z:hZ, marker:{ color:hC, size:sz(2), opacity:0.9 } };
 }
 
 function buildPythagoreanTraces() {
@@ -268,13 +273,13 @@ function buildPythagoreanTraces() {
 
   return [
     { type:'scatter3d', mode:'markers', name:'b(n) 青系',
-      x:p.xs, y:p.ys, z:p.zs, marker:{ color:p.cs, size:8, opacity:0.9 } },
+      x:p.xs, y:p.ys, z:p.zs, marker:{ color:p.cs, size:sz(8), opacity:0.9 } },
     { type:'scatter3d', mode:'markers', name:'a(n) 赤系',
-      x:g.xs, y:g.ys, z:g.zs, marker:{ color:g.cs, size:8, opacity:0.9 } },
+      x:g.xs, y:g.ys, z:g.zs, marker:{ color:g.cs, size:sz(8), opacity:0.9 } },
     { type:'scatter3d', mode:'lines', name:'÷2（破線）',
-      x:c.xs, y:c.ys, z:c.zs, line:{ color:'rgba(255,180,60,0.8)', width:2, dash:'dash' } },
+      x:c.xs, y:c.ys, z:c.zs, line:{ color:'rgba(255,180,60,0.8)', width:sz(2), dash:'dash' } },
     { type:'scatter3d', mode:'lines', name:'×3/2（実線）',
-      x:s.xs, y:s.ys, z:s.zs, line:{ color:'rgba(200,200,200,0.6)', width:1.5 } }
+      x:s.xs, y:s.ys, z:s.zs, line:{ color:'rgba(200,200,200,0.6)', width:sz(1.5) } }
   ];
 }
 
@@ -351,10 +356,10 @@ async function startAnimation() {
 
   Plotly.react('plot', [
     helixTrace,
-    { type:'scatter3d', mode:'markers', name:'b(n) 青系',  x:[], y:[], z:[], marker:{color:[], size:8, opacity:0.9} },
-    { type:'scatter3d', mode:'markers', name:'a(n) 赤系',  x:[], y:[], z:[], marker:{color:[], size:8, opacity:0.9} },
-    { type:'scatter3d', mode:'lines',   name:'÷2（破線）', x:[], y:[], z:[], line:{color:'rgba(255,180,60,0.8)', width:2, dash:'dash'} },
-    { type:'scatter3d', mode:'lines',   name:'×3/2（実線）',x:[], y:[], z:[], line:{color:'rgba(200,200,200,0.6)', width:1.5} }
+    { type:'scatter3d', mode:'markers', name:'b(n) 青系',  x:[], y:[], z:[], marker:{color:[], size:sz(8), opacity:0.9} },
+    { type:'scatter3d', mode:'markers', name:'a(n) 赤系',  x:[], y:[], z:[], marker:{color:[], size:sz(8), opacity:0.9} },
+    { type:'scatter3d', mode:'lines',   name:'÷2（破線）', x:[], y:[], z:[], line:{color:'rgba(255,180,60,0.8)', width:sz(2), dash:'dash'} },
+    { type:'scatter3d', mode:'lines',   name:'×3/2（実線）',x:[], y:[], z:[], line:{color:'rgba(200,200,200,0.6)', width:sz(1.5)} }
   ], buildLayout(cam));
 
   const pX=[], pY=[], pZ=[], pC=[];
