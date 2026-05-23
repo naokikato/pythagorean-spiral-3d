@@ -363,6 +363,12 @@ async function startAnimation() {
   const sX=[], sY=[], sZ=[];
 
   const redraw = () => {
+    // Sync layout camera to current camera before restyle, otherwise Plotly
+    // reapplies the stale camera stored in layout and resets the user's view.
+    const el = document.getElementById('plot');
+    const liveCam = el._fullLayout?.scene?.camera;
+    if (liveCam && el.layout?.scene) el.layout.scene.camera = liveCam;
+
     Plotly.restyle('plot', { x:[[...pX]], y:[[...pY]], z:[[...pZ]], 'marker.color':[[...pC]] }, [1]);
     Plotly.restyle('plot', { x:[[...gX]], y:[[...gY]], z:[[...gZ]], 'marker.color':[[...gC]] }, [2]);
     Plotly.restyle('plot', { x:[[...cX]], y:[[...cY]], z:[[...cZ]] }, [3]);
