@@ -326,6 +326,18 @@ async function startAnimation() {
     animCancelFn = () => { clearTimeout(id); r(); };
   });
 
+  // While dragging, pause the animation entirely (no Plotly calls at all).
+  // Resume automatically on mouseup so camera rotation works freely.
+  let animPaused = false;
+  const plotEl = document.getElementById('plot');
+  const onDown = () => { animPaused = true; };
+  const onUp   = () => { animPaused = false; };
+  plotEl.addEventListener('mousedown', onDown, { capture: true });
+  document.addEventListener('mouseup', onUp);
+  const waitIfPaused = async () => {
+    while (animPaused && animRunning) await new Promise(r => setTimeout(r, 30));
+  };
+
   let a = 440;
   const seq = [];
   for (let n = 0; n <= N_MAX; n++) {
@@ -337,8 +349,6 @@ async function startAnimation() {
   const cam = currentCamera();
   const helixTrace = buildHelixTrace();
 
-  // Initialize: helix + 4 empty placeholder traces (indices 1-4)
-  // All subsequent updates use Plotly.restyle() which never touches the layout/camera
   Plotly.react('plot', [
     helixTrace,
     { type:'scatter3d', mode:'markers', name:'b(n) 青系',  x:[], y:[], z:[], marker:{color:[], size:8, opacity:0.9} },
@@ -352,30 +362,14 @@ async function startAnimation() {
   const cX=[], cY=[], cZ=[];
   const sX=[], sY=[], sZ=[];
 
-  // Skip restyle while the user is dragging (mousedown on plot),
-  // then immediately apply the latest state on mouseup.
-  let isDragging = false;
-  let pendingRedraw = false;
-  const plotEl = document.getElementById('plot');
-  const onDown = () => { isDragging = true; };
-  const onUp   = () => {
-    isDragging = false;
-    if (pendingRedraw) { pendingRedraw = false; doRestyle(); }
-  };
-  plotEl.addEventListener('mousedown', onDown, { capture: true });
-  document.addEventListener('mouseup', onUp);
-
-  const doRestyle = () => {
+  const redraw = () => {
     Plotly.restyle('plot', { x:[[...pX]], y:[[...pY]], z:[[...pZ]], 'marker.color':[[...pC]] }, [1]);
     Plotly.restyle('plot', { x:[[...gX]], y:[[...gY]], z:[[...gZ]], 'marker.color':[[...gC]] }, [2]);
     Plotly.restyle('plot', { x:[[...cX]], y:[[...cY]], z:[[...cZ]] }, [3]);
     Plotly.restyle('plot', { x:[[...sX]], y:[[...sY]], z:[[...sZ]] }, [4]);
   };
-  const redraw = () => {
-    if (isDragging) { pendingRedraw = true; return; }
-    doRestyle();
-  };
   await sleep(800);
+  await waitIfPaused();
 
   for (const { n, b, a_raw } of seq) {
     if (!animRunning) break;
@@ -385,7 +379,7 @@ async function startAnimation() {
 
     pX.push(Math.cos(ang_b)); pY.push(Math.sin(ang_b)); pZ.push(b); pC.push(blueOf(n));
     redraw();
-    await sleep(delay());
+    await sleep(delay()); await waitIfPaused();
     if (!animRunning) break;
 
     if (n < N_MAX) {
@@ -395,7 +389,7 @@ async function startAnimation() {
       sY.push(Math.sin(ang_b), Math.sin(ang_next), null);
       sZ.push(b, a_next, null);
       redraw();
-      await sleep(delay());
+      await sleep(delay()); await waitIfPaused();
       if (!animRunning) break;
 
       if (a_next > 880) {
@@ -405,14 +399,14 @@ async function startAnimation() {
         gX.push(Math.cos(ang_anxt)); gY.push(Math.sin(ang_anxt));
         gZ.push(a_next); gC.push(redOf(n + 1));
         redraw();
-        await sleep(delay());
+        await sleep(delay()); await waitIfPaused();
         if (!animRunning) break;
 
         cX.push(Math.cos(ang_anxt), Math.cos(ang_bnxt), null);
         cY.push(Math.sin(ang_anxt), Math.sin(ang_bnxt), null);
         cZ.push(a_next, b_next, null);
         redraw();
-        await sleep(delay());
+        await sleep(delay()); await waitIfPaused();
         if (!animRunning) break;
       }
     }
