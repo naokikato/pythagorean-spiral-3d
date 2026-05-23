@@ -352,11 +352,28 @@ async function startAnimation() {
   const cX=[], cY=[], cZ=[];
   const sX=[], sY=[], sZ=[];
 
-  const redraw = () => {
+  // Skip restyle while the user is dragging (mousedown on plot),
+  // then immediately apply the latest state on mouseup.
+  let isDragging = false;
+  let pendingRedraw = false;
+  const plotEl = document.getElementById('plot');
+  const onDown = () => { isDragging = true; };
+  const onUp   = () => {
+    isDragging = false;
+    if (pendingRedraw) { pendingRedraw = false; doRestyle(); }
+  };
+  plotEl.addEventListener('mousedown', onDown, { capture: true });
+  document.addEventListener('mouseup', onUp);
+
+  const doRestyle = () => {
     Plotly.restyle('plot', { x:[[...pX]], y:[[...pY]], z:[[...pZ]], 'marker.color':[[...pC]] }, [1]);
     Plotly.restyle('plot', { x:[[...gX]], y:[[...gY]], z:[[...gZ]], 'marker.color':[[...gC]] }, [2]);
     Plotly.restyle('plot', { x:[[...cX]], y:[[...cY]], z:[[...cZ]] }, [3]);
     Plotly.restyle('plot', { x:[[...sX]], y:[[...sY]], z:[[...sZ]] }, [4]);
+  };
+  const redraw = () => {
+    if (isDragging) { pendingRedraw = true; return; }
+    doRestyle();
   };
   await sleep(800);
 
@@ -401,6 +418,8 @@ async function startAnimation() {
     }
   }
 
+  plotEl.removeEventListener('mousedown', onDown, { capture: true });
+  document.removeEventListener('mouseup', onUp);
   animRunning = false;
   animCancelFn = null;
   document.getElementById('anim-btn').style.display = '';
