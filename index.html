@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ピタゴラスの五度圏 3D</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 12px 20px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3e;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #7c9ff5;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left panel: code editor */
+    .panel-left {
+      width: 380px;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #2a2d3e;
+      background: #13161f;
+    }
+
+    .panel-title {
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7a99;
+      border-bottom: 1px solid #2a2d3e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #code-editor {
+      flex: 1;
+      background: #0d1017;
+      color: #a8d4ff;
+      border: none;
+      outline: none;
+      padding: 16px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      tab-size: 2;
+    }
+
+    .run-bar {
+      padding: 10px 12px;
+      background: #1a1d27;
+      border-top: 1px solid #2a2d3e;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #run-btn {
+      flex: 1;
+      padding: 9px 16px;
+      background: #3d6cf5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #run-btn:hover { background: #5580ff; }
+    #run-btn:active { background: #2b56d4; }
+
+    #clear-btn {
+      padding: 9px 14px;
+      background: #2a2d3e;
+      color: #9ca3af;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #clear-btn:hover { background: #383b50; }
+
+    #anim-btn {
+      padding: 9px 14px;
+      background: #1e4a2a;
+      color: #4ade80;
+      border: 1px solid #2d6b40;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #anim-btn:hover { background: #255c34; }
+
+    #stop-btn {
+      padding: 9px 14px;
+      background: #4a1e1e;
+      color: #f87171;
+      border: 1px solid #6b2d2d;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: none;
+    }
+    #stop-btn:hover { background: #5c2525; }
+
+    .speed-bar {
+      padding: 6px 12px 8px;
+      background: #1a1d27;
+      border-top: 1px solid #2a2d3e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #6b7a99;
+    }
+    .speed-bar input[type=range] {
+      flex: 1;
+      accent-color: #3d6cf5;
+      height: 4px;
+    }
+    .speed-bar span { min-width: 36px; color: #a8b8d8; font-size: 12px; }
+
+    /* View buttons */
+    .view-bar {
+      padding: 6px 10px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3e;
+      display: flex;
+      gap: 6px;
+    }
+    .view-btn {
+      padding: 5px 14px;
+      background: #1e2233;
+      border: 1px solid #2e3348;
+      border-radius: 4px;
+      color: #9ba3c0;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .view-btn:hover { background: #252a40; color: #c5cde0; border-color: #3d6cf5; }
+
+    /* Presets */
+    .presets {
+      padding: 10px 12px;
+      border-bottom: 1px solid #2a2d3e;
+    }
+
+    .presets label {
+      font-size: 11px;
+      color: #6b7a99;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .preset-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .preset-btn {
+      padding: 4px 10px;
+      background: #1e2233;
+      border: 1px solid #2e3348;
+      border-radius: 4px;
+      color: #9ba3c0;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover {
+      background: #252a40;
+      color: #c5cde0;
+      border-color: #3d6cf5;
+    }
+
+    /* Log */
+    .log-area {
+      max-height: 80px;
+      overflow-y: auto;
+      padding: 6px 12px;
+      background: #0a0c12;
+      border-top: 1px solid #1e2233;
+      font-family: monospace;
+      font-size: 12px;
+      color: #6ddb6d;
+    }
+    .log-error { color: #ff6b6b; }
+
+    /* Right panel: 3D plot */
+    .panel-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #plot {
+      flex: 1;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      padding: 6px 16px;
+      background: #1a1d27;
+      border-top: 1px solid #2a2d3e;
+      font-size: 12px;
+      color: #6b7a99;
+      display: flex;
+      gap: 16px;
+    }
+    .stats-bar span b { color: #a8b8d8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ピタゴラスの五度圏 3D</h1>
+</header>
+
+<div class="main">
+  <!-- Left: Code Editor -->
+  <div class="panel-left">
+    <div class="panel-title">
+      <span>コード エディタ</span>
+      <span style="font-size:10px;font-weight:400">Ctrl+Enter で実行</span>
+    </div>
+
+    <div class="presets">
+      <label>プリセット</label>
+      <div class="preset-list">
+        <button class="preset-btn" data-preset="pythagorean">ピタゴラス音律</button>
+        <button class="preset-btn" data-preset="cylinder_helix">円柱螺旋</button>
+        <button class="preset-btn" data-preset="helix">ヘリックス</button>
+        <button class="preset-btn" data-preset="sphere">球面</button>
+        <button class="preset-btn" data-preset="wave">波面</button>
+        <button class="preset-btn" data-preset="torus">トーラス</button>
+        <button class="preset-btn" data-preset="random">ランダム</button>
+      </div>
+    </div>
+
+    <div class="editor-area">
+      <textarea id="code-editor" spellcheck="false"></textarea>
+    </div>
+
+    <div class="log-area" id="log"></div>
+
+    <div class="run-bar">
+      <button id="run-btn">▶ 実行 (Ctrl+Enter)</button>
+      <button id="clear-btn">クリア</button>
+      <button id="anim-btn">◉ アニメ</button>
+      <button id="stop-btn">■ 停止</button>
+    </div>
+    <div class="speed-bar">
+      <span>遅</span>
+      <input type="range" id="anim-speed" min="100" max="1500" value="700" step="100">
+      <span>速</span>
+      <span id="speed-label">0.7s</span>
+    </div>
+  </div>
+
+  <!-- Right: 3D Plot -->
+  <div class="panel-right">
+    <div class="view-bar">
+      <button class="view-btn" id="view-top">↑ 上から</button>
+      <button class="view-btn" id="view-side">→ 横から</button>
+      <button class="view-btn" id="view-default">⟳ リセット</button>
+    </div>
+    <div id="plot"></div>
+    <div class="stats-bar">
+      <span>点数: <b id="stat-count">0</b></span>
+      <span>X: <b id="stat-x">—</b></span>
+      <span>Y: <b id="stat-y">—</b></span>
+      <span>Z: <b id="stat-z">—</b></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Presets ───────────────────────────────────────────────────
+const PRESETS = {
+  pythagorean: `// ピタゴラス音律 (五度圏) + 対数スケール螺旋
+// angle = log₂(Z/440) × 2π → Z と Z/2 が常に同じ角度（1オクターブ = 1回転）
+// a(1)=440, a(n)=a(n-1)*(3/2), a(n)>880 なら /2
+
+const logAng = Z => Math.log2(Z / 440) * 2 * Math.PI;
+// 角度(rad) → 色相(0-360)：同じ角度位置は常に同じ色
+const angHue = ang => ((ang % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI) / (2*Math.PI) * 360;
+
+// ── 螺旋ライン (Z: 440→1400) ──
+const helix = [];
+for (let i = 0; i <= 3000; i++) {
+  const Z = 440 * Math.pow(2, Math.log2(1400 / 440) * i / 3000);
+  const ang = logAng(Z);
+  const hue = Math.round(angHue(ang));
+  helix.push({ x: Math.cos(ang), y: Math.sin(ang), z: Z, color: 'hsl(' + hue + ',90%,55%)' });
+}
+
+// ── 色計算: n=0が薄く, n=12が濃く ──
+const N_MAX = 12;
+const blueOf = n => \`hsl(220,90%,\${Math.round(75 - n * 4.5)}%)\`;
+const redOf  = n => \`hsl(  0,90%,\${Math.round(75 - n * 4.5)}%)\`;
+
+// ── 全点を事前計算 ──
+let a = 440;
+const seq = [];
+for (let n = 0; n <= N_MAX; n++) {
+  const halved = a > 880;
+  const b = halved ? a / 2 : a;
+  seq.push({ n, b, a, halved });
+  a = b * 3 / 2;
+}
+
+// ── 各トレースを構築 ──
+const pyth  = [];  // b(n) 青系
+const ghost = [];  // a(n) 赤系
+const conn  = [];  // 破線: a(n) → b(n)（÷2）
+const path  = [];  // 実線: b(n) → a(n+1)（×3/2）
+
+for (const { n, b, a: an, halved } of seq) {
+  const ang_b = logAng(b);
+  const ang_a = logAng(an);
+  pyth.push({ x: Math.cos(ang_b), y: Math.sin(ang_b), z: b, color: blueOf(n) });
+
+  if (halved) {
+    ghost.push({ x: Math.cos(ang_a), y: Math.sin(ang_a), z: an, color: redOf(n) });
+    conn.push(
+      { x: Math.cos(ang_a), y: Math.sin(ang_a), z: an, color: redOf(n) },
+      { x: Math.cos(ang_b), y: Math.sin(ang_b), z: b,  color: redOf(n) },
+      null
+    );
+  }
+
+  // 実線: b(n) → a(n+1)（= b(n)×3/2）
+  if (n < N_MAX) {
+    const a_next = b * 3 / 2;
+    const ang_next = logAng(a_next);
+    path.push(
+      { x: Math.cos(ang_b),    y: Math.sin(ang_b),    z: b },
+      { x: Math.cos(ang_next), y: Math.sin(ang_next), z: a_next },
+      null
+    );
+  }
+}
+
+return { traces: [
+  { points: helix,  name: '円柱螺旋',  mode: 'markers' },
+  { points: pyth,   name: 'b(n) 青系', mode: 'markers', markerSize: 8 },
+  { points: ghost,  name: 'a(n) 赤系', mode: 'markers', markerSize: 8 },
+  { points: conn,   name: '÷2（破線）', mode: 'lines',  lineColor: 'rgba(255,180,60,0.8)',  lineWidth: 2, dash: 'dash' },
+  { points: path,   name: '×3/2（実線）',mode: 'lines', lineColor: 'rgba(200,200,200,0.6)', lineWidth: 1.5 }
+]};`,
+
+  cylinder_helix: `// 円柱側面の螺旋
+// Z=440→0°(1,0), Z=550→90°(0,1), Z=660→180°(-1,0)
+// Z=770→270°(0,-1), Z=880→360°(1,0)
+// angle = (Z - 440) × π / 220
+
+const points = [];
+
+// 螺旋ライン (Z: 0 to 1760, 約4周)
+const N = 2000;
+for (let i = 0; i <= N; i++) {
+  const Z = 1760 * i / N;
+  const angle = (Z - 440) * Math.PI / 220;
+  points.push({
+    x: Math.cos(angle),
+    y: Math.sin(angle),
+    z: Z
+  });
+}
+return points;`,
+
+  helix: `// ヘリックス (螺旋)
+const points = [];
+const N = 500;
+for (let i = 0; i < N; i++) {
+  const t = (i / N) * 4 * Math.PI;
+  const r = 1;
+  points.push({
+    x: r * Math.cos(t),
+    y: r * Math.sin(t),
+    z: t / (2 * Math.PI)
+  });
+}
+return points;`,
+
+  sphere: `// 球面上の点
+const points = [];
+const N = 800;
+for (let i = 0; i < N; i++) {
+  // フィボナッチ格子で均等分布
+  const phi = Math.acos(1 - 2 * (i + 0.5) / N);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  const r = 1;
+  points.push({
+    x: r * Math.sin(phi) * Math.cos(theta),
+    y: r * Math.sin(phi) * Math.sin(theta),
+    z: r * Math.cos(phi)
+  });
+}
+return points;`,
+
+  wave: `// 波面 z = sin(x)*cos(y)
+const points = [];
+const step = 0.2;
+for (let x = -4; x <= 4; x += step) {
+  for (let y = -4; y <= 4; y += step) {
+    points.push({
+      x,
+      y,
+      z: Math.sin(x) * Math.cos(y)
+    });
+  }
+}
+return points;`,
+
+  torus: `// トーラス
+const points = [];
+const R = 2, r = 0.8;
+const Nu = 80, Nv = 40;
+for (let i = 0; i < Nu; i++) {
+  for (let j = 0; j < Nv; j++) {
+    const u = (i / Nu) * 2 * Math.PI;
+    const v = (j / Nv) * 2 * Math.PI;
+    points.push({
+      x: (R + r * Math.cos(v)) * Math.cos(u),
+      y: (R + r * Math.cos(v)) * Math.sin(u),
+      z: r * Math.sin(v)
+    });
+  }
+}
+return points;`,
+
+  random: `// ランダム点群（ガウス分布）
+const points = [];
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+for (let i = 0; i < 1000; i++) {
+  points.push({ x: randn(), y: randn(), z: randn() });
+}
+return points;`
+};
+
+// ─── Plot state ────────────────────────────────────────────────
+let plotInitialized = false;
+
+function initPlot() {
+  Plotly.newPlot('plot', [], buildLayout(), { responsive: true, displayModeBar: true });
+
+  document.getElementById('plot').on('plotly_hover', (data) => {
+    if (!data.points.length) return;
+    const p = data.points[0];
+    document.getElementById('stat-x').textContent = p.x.toFixed(4);
+    document.getElementById('stat-y').textContent = p.y.toFixed(4);
+    document.getElementById('stat-z').textContent = p.z.toFixed(4);
+  });
+
+  plotInitialized = true;
+}
+
+function buildLayout(points) {
+  return {
+    paper_bgcolor: '#0f1117',
+    plot_bgcolor: '#0f1117',
+    margin: { l: 0, r: 0, t: 0, b: 0 },
+    scene: {
+      xaxis: axisStyle('X'),
+      yaxis: axisStyle('Y'),
+      zaxis: axisStyle('Z'),
+      bgcolor: '#0f1117',
+    },
+    uirevision: 'keep'  // preserve camera on re-render
+  };
+}
+
+function axisStyle(title) {
+  return {
+    title: { text: title, font: { color: '#7c9ff5', size: 13 } },
+    color: '#4a5568',
+    gridcolor: '#1e2a3a',
+    zerolinecolor: '#2d3a4a',
+    tickfont: { color: '#6b7a99', size: 10 }
+  };
+}
+
+// ─── Run user code ─────────────────────────────────────────────
+function buildTrace(tc, index) {
+  const points = tc.points ?? tc;
+  const xs = [], ys = [], zs = [], cs = [];
+  let validCount = 0;
+  for (const p of points) {
+    if (p === null || p === undefined) {
+      xs.push(null); ys.push(null); zs.push(null); cs.push(null);
+      continue;
+    }
+    if (typeof p.x !== 'number' || typeof p.y !== 'number' || typeof p.z !== 'number') continue;
+    xs.push(p.x); ys.push(p.y); zs.push(p.z);
+    cs.push(p.color ?? p.c ?? null);
+    validCount++;
+  }
+  const n = validCount;
+  const hasColor = cs.some(c => c !== null && c !== undefined);
+  const sparse = n <= 100;
+  const mode = tc.mode ?? (sparse ? 'lines+markers' : 'markers');
+  const autoSize = sparse
+    ? Math.max(6, Math.min(14, 200 / Math.max(n, 1)))
+    : Math.max(2, Math.min(4, 3000 / Math.max(n, 1)));
+  return {
+    type: 'scatter3d', mode,
+    name: tc.name ?? `トレース ${index + 1}`,
+    x: xs, y: ys, z: zs,
+    marker: {
+      color: hasColor ? cs : xs.filter(x => x !== null).map((_, i) => i / Math.max(n - 1, 1)),
+      colorscale: hasColor ? 'Plasma' : 'Viridis',
+      size: tc.markerSize ?? autoSize,
+      opacity: tc.opacity ?? 0.9
+    },
+    line: {
+      color: tc.lineColor ?? 'rgba(255,255,255,0.3)',
+      width: tc.lineWidth ?? 1.5,
+      dash: tc.dash ?? 'solid'
+    }
+  };
+}
+
+function runCode() {
+  const code = document.getElementById('code-editor').value.trim();
+  const log = document.getElementById('log');
+  log.textContent = '';
+
+  let result;
+  try {
+    result = new Function(code)();
+    if (!Array.isArray(result) && !(result?.traces)) {
+      throw new Error('配列 または { traces: [...] } を return してください。');
+    }
+  } catch (e) {
+    log.innerHTML = `<span class="log-error">Error: ${e.message}</span>`;
+    return;
+  }
+
+  const traceConfigs = Array.isArray(result) ? [{ points: result }] : result.traces;
+  const plotlyTraces = traceConfigs.map((tc, i) => buildTrace(tc, i));
+
+  if (!plotInitialized) initPlot();
+  Plotly.react('plot', plotlyTraces, buildLayout());
+
+  const total = plotlyTraces.reduce((s, t) => s + t.x.length, 0);
+  document.getElementById('stat-count').textContent = total.toLocaleString();
+  const label = plotlyTraces.length > 1 ? ` (${plotlyTraces.length} トレース)` : '';
+  log.textContent = `✓ ${total.toLocaleString()} 点をプロット${label}`;
+}
+
+// ─── Clear ─────────────────────────────────────────────────────
+function clearPlot() {
+  if (!plotInitialized) return;
+  Plotly.react('plot', [], buildLayout());
+  document.getElementById('stat-count').textContent = '0';
+  document.getElementById('stat-x').textContent = '—';
+  document.getElementById('stat-y').textContent = '—';
+  document.getElementById('stat-z').textContent = '—';
+  document.getElementById('log').textContent = '';
+}
+
+// ─── Event bindings ────────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', runCode);
+document.getElementById('clear-btn').addEventListener('click', clearPlot);
+
+document.getElementById('code-editor').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runCode();
+  }
+  // Tab key → insert spaces
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const el = e.target;
+    const start = el.selectionStart;
+    el.value = el.value.substring(0, start) + '  ' + el.value.substring(el.selectionEnd);
+    el.selectionStart = el.selectionEnd = start + 2;
+  }
+});
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.preset;
+    document.getElementById('code-editor').value = PRESETS[key];
+  });
+});
+
+// ─── Animation ─────────────────────────────────────────────────
+let animRunning = false;
+let animCancelFn = null;
+
+function stopAnimation() {
+  animRunning = false;
+  if (animCancelFn) { animCancelFn(); animCancelFn = null; }
+  document.getElementById('anim-btn').style.display = '';
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('log').textContent = '停止しました';
+}
+
+async function startAnimation() {
+  if (animRunning) return;
+  animRunning = true;
+  document.getElementById('anim-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'block';
+  document.getElementById('log').textContent = '▶ アニメーション中…';
+
+  const delay = () => parseInt(document.getElementById('anim-speed').value);
+  const sleep = ms => new Promise(r => {
+    const id = setTimeout(r, ms);
+    animCancelFn = () => { clearTimeout(id); r(); };
+  });
+
+  // ── シーケンス計算（プリセットと同じパラメータ）──
+  const logAng = Z => Math.log2(Z / 440) * 2 * Math.PI;
+  const angHue = ang => ((ang % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI) / (2*Math.PI) * 360;
+  const blueOf = n => 'hsl(220,90%,' + Math.round(75 - n * 4.5) + '%)';
+  const redOf  = n => 'hsl(0,90%,'   + Math.round(75 - n * 4.5) + '%)';
+  const N_MAX = 12;
+
+  let a = 440;
+  const seq = [];
+  for (let n = 0; n <= N_MAX; n++) {
+    const b = a > 880 ? a / 2 : a;
+    seq.push({ n, b, a_raw: a });
+    a = b * 3 / 2;
+  }
+
+  // ── 螺旋トレース ──
+  const hX=[], hY=[], hZ=[], hC=[];
+  for (let i = 0; i <= 3000; i++) {
+    const Z = 440 * Math.pow(2, Math.log2(1400/440) * i / 3000);
+    const ang = logAng(Z);
+    hX.push(Math.cos(ang)); hY.push(Math.sin(ang)); hZ.push(Z);
+    hC.push('hsl(' + Math.round(angHue(ang)) + ',90%,55%)');
+  }
+  const helixTrace = {
+    type:'scatter3d', mode:'markers', name:'円柱螺旋',
+    x:hX, y:hY, z:hZ,
+    marker:{ color:hC, size:2, opacity:0.9 }
+  };
+
+  // ── 累積データ ──
+  const pX=[], pY=[], pZ=[], pC=[];  // 青点
+  const gX=[], gY=[], gZ=[], gC=[];  // 赤点
+  const cX=[], cY=[], cZ=[];          // 破線（÷2）
+  const sX=[], sY=[], sZ=[];          // 実線（×3/2）
+
+  const redraw = () => {
+    const tr = [helixTrace];
+    if (pX.length) tr.push({ type:'scatter3d', mode:'markers', name:'b(n) 青系',
+      x:[...pX], y:[...pY], z:[...pZ], marker:{ color:[...pC], size:8, opacity:0.9 } });
+    if (gX.length) tr.push({ type:'scatter3d', mode:'markers', name:'a(n) 赤系',
+      x:[...gX], y:[...gY], z:[...gZ], marker:{ color:[...gC], size:8, opacity:0.9 } });
+    if (cX.length) tr.push({ type:'scatter3d', mode:'lines', name:'÷2（破線）',
+      x:[...cX], y:[...cY], z:[...cZ], line:{ color:'rgba(255,180,60,0.8)', width:2, dash:'dash' } });
+    if (sX.length) tr.push({ type:'scatter3d', mode:'lines', name:'×3/2（実線）',
+      x:[...sX], y:[...sY], z:[...sZ], line:{ color:'rgba(200,200,200,0.6)', width:1.5 } });
+    Plotly.react('plot', tr, buildLayout());
+  };
+
+  // ── 初期状態：螺旋のみ ──
+  Plotly.react('plot', [helixTrace], buildLayout());
+  await sleep(800);
+
+  // ── ステップ実行 ──
+  for (const { n, b, a_raw } of seq) {
+    if (!animRunning) break;
+    const ang_b   = logAng(b);
+    const ang_a   = logAng(a_raw);
+    const halved  = a_raw > 880;
+
+    // 1. b(n) 青点を打つ
+    pX.push(Math.cos(ang_b)); pY.push(Math.sin(ang_b)); pZ.push(b); pC.push(blueOf(n));
+    redraw();
+    await sleep(delay());
+    if (!animRunning) break;
+
+    if (n < N_MAX) {
+      const a_next   = b * 3 / 2;
+      const ang_next = logAng(a_next);
+
+      // 2. 実線 b(n) → a_next を引く
+      sX.push(Math.cos(ang_b), Math.cos(ang_next), null);
+      sY.push(Math.sin(ang_b), Math.sin(ang_next), null);
+      sZ.push(b, a_next, null);
+      redraw();
+      await sleep(delay());
+      if (!animRunning) break;
+
+      // 3. a_next > 880 なら赤点 + 破線
+      if (a_next > 880) {
+        const b_next   = a_next / 2;
+        const ang_anxt = logAng(a_next);
+        const ang_bnxt = logAng(b_next);
+
+        gX.push(Math.cos(ang_anxt)); gY.push(Math.sin(ang_anxt));
+        gZ.push(a_next); gC.push(redOf(n + 1));
+        redraw();
+        await sleep(delay());
+        if (!animRunning) break;
+
+        cX.push(Math.cos(ang_anxt), Math.cos(ang_bnxt), null);
+        cY.push(Math.sin(ang_anxt), Math.sin(ang_bnxt), null);
+        cZ.push(a_next, b_next, null);
+        redraw();
+        await sleep(delay());
+        if (!animRunning) break;
+      }
+    }
+  }
+
+  if (animRunning) {
+    document.getElementById('log').textContent = '✓ アニメーション完了';
+  }
+  animRunning = false;
+  animCancelFn = null;
+  document.getElementById('anim-btn').style.display = '';
+  document.getElementById('stop-btn').style.display = 'none';
+}
+
+// ─── View buttons ──────────────────────────────────────────────
+const setCamera = eye => Plotly.relayout('plot', {'scene.camera': { eye, up: {x:0,y:0,z:1} }});
+document.getElementById('view-top').addEventListener('click',     () => setCamera({x:0,   y:0,   z:2.5}));
+document.getElementById('view-side').addEventListener('click',    () => setCamera({x:2.5, y:0,   z:0.1}));
+document.getElementById('view-default').addEventListener('click', () => setCamera({x:1.5, y:1.5, z:1.2}));
+
+document.getElementById('anim-btn').addEventListener('click', startAnimation);
+document.getElementById('stop-btn').addEventListener('click', stopAnimation);
+document.getElementById('anim-speed').addEventListener('input', e => {
+  document.getElementById('speed-label').textContent = (e.target.value / 1000).toFixed(1) + 's';
+});
+
+// ─── Init ──────────────────────────────────────────────────────
+initPlot();
+document.getElementById('code-editor').value = PRESETS.pythagorean;
+runCode();
+</script>
+</body>
+</html>
