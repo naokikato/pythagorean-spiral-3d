@@ -336,25 +336,28 @@ async function startAnimation() {
 
   const cam = currentCamera();
   const helixTrace = buildHelixTrace();
+
+  // Initialize: helix + 4 empty placeholder traces (indices 1-4)
+  // All subsequent updates use Plotly.restyle() which never touches the layout/camera
+  Plotly.react('plot', [
+    helixTrace,
+    { type:'scatter3d', mode:'markers', name:'b(n) 青系',  x:[], y:[], z:[], marker:{color:[], size:8, opacity:0.9} },
+    { type:'scatter3d', mode:'markers', name:'a(n) 赤系',  x:[], y:[], z:[], marker:{color:[], size:8, opacity:0.9} },
+    { type:'scatter3d', mode:'lines',   name:'÷2（破線）', x:[], y:[], z:[], line:{color:'rgba(255,180,60,0.8)', width:2, dash:'dash'} },
+    { type:'scatter3d', mode:'lines',   name:'×3/2（実線）',x:[], y:[], z:[], line:{color:'rgba(200,200,200,0.6)', width:1.5} }
+  ], buildLayout(cam));
+
   const pX=[], pY=[], pZ=[], pC=[];
   const gX=[], gY=[], gZ=[], gC=[];
   const cX=[], cY=[], cZ=[];
   const sX=[], sY=[], sZ=[];
 
   const redraw = () => {
-    const tr = [helixTrace];
-    if (pX.length) tr.push({ type:'scatter3d', mode:'markers', name:'b(n) 青系',
-      x:[...pX], y:[...pY], z:[...pZ], marker:{ color:[...pC], size:8, opacity:0.9 } });
-    if (gX.length) tr.push({ type:'scatter3d', mode:'markers', name:'a(n) 赤系',
-      x:[...gX], y:[...gY], z:[...gZ], marker:{ color:[...gC], size:8, opacity:0.9 } });
-    if (cX.length) tr.push({ type:'scatter3d', mode:'lines', name:'÷2（破線）',
-      x:[...cX], y:[...cY], z:[...cZ], line:{ color:'rgba(255,180,60,0.8)', width:2, dash:'dash' } });
-    if (sX.length) tr.push({ type:'scatter3d', mode:'lines', name:'×3/2（実線）',
-      x:[...sX], y:[...sY], z:[...sZ], line:{ color:'rgba(200,200,200,0.6)', width:1.5 } });
-    Plotly.react('plot', tr, buildLayout());
+    Plotly.restyle('plot', { x:[[...pX]], y:[[...pY]], z:[[...pZ]], 'marker.color':[[...pC]] }, [1]);
+    Plotly.restyle('plot', { x:[[...gX]], y:[[...gY]], z:[[...gZ]], 'marker.color':[[...gC]] }, [2]);
+    Plotly.restyle('plot', { x:[[...cX]], y:[[...cY]], z:[[...cZ]] }, [3]);
+    Plotly.restyle('plot', { x:[[...sX]], y:[[...sY]], z:[[...sZ]] }, [4]);
   };
-
-  Plotly.react('plot', [helixTrace], buildLayout(cam));
   await sleep(800);
 
   for (const { n, b, a_raw } of seq) {
