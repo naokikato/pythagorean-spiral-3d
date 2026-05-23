@@ -222,19 +222,26 @@ let darkMode = true;
 const THEME = {
   dark: {
     bg: '#0f1117', axis: '#4a5568', grid: '#1e2a3a',
-    zeroline: '#2d3a4a', tickColor: '#6b7a99', titleColor: '#7c9ff5'
+    zeroline: '#2d3a4a', tickColor: '#6b7a99', titleColor: '#7c9ff5',
+    lineColor: 'rgba(200,200,200,0.6)', dashColor: 'rgba(255,180,60,0.8)'
   },
   light: {
     bg: '#f4f6fc', axis: '#8892b0', grid: '#d4d8ee',
-    zeroline: '#c0c8e0', tickColor: '#6b7899', titleColor: '#3a5ccf'
+    zeroline: '#c0c8e0', tickColor: '#6b7899', titleColor: '#3a5ccf',
+    lineColor: 'rgba(40,40,80,0.7)', dashColor: 'rgba(200,120,0,0.9)'
   }
 };
+const tNow = () => darkMode ? THEME.dark : THEME.light;
 
 function applyTheme(dark) {
   darkMode = dark;
   document.body.classList.toggle('light', !dark);
   document.getElementById('theme-btn').textContent = dark ? '☀ ライト' : '☾ ダーク';
   const t = dark ? THEME.dark : THEME.light;
+  // Update line trace colors (÷2 dashed = index 3, ×3/2 solid = index 4)
+  Plotly.restyle('plot', { 'line.color': t.dashColor }, [3]);
+  Plotly.restyle('plot', { 'line.color': t.lineColor  }, [4]);
+
   Plotly.relayout('plot', {
     paper_bgcolor: t.bg,
     plot_bgcolor:  t.bg,
@@ -366,9 +373,9 @@ function buildPythagoreanTraces() {
     { type:'scatter3d', mode:'markers', name:'a(n) 赤系',
       x:g.xs, y:g.ys, z:g.zs, marker:{ color:g.cs, size:6, opacity:0.9 } },
     { type:'scatter3d', mode:'lines', name:'÷2（破線）',
-      x:c.xs, y:c.ys, z:c.zs, line:{ color:'rgba(255,180,60,0.8)', width:sz(2), dash:'dash' } },
+      x:c.xs, y:c.ys, z:c.zs, line:{ color:tNow().dashColor, width:sz(2), dash:'dash' } },
     { type:'scatter3d', mode:'lines', name:'×3/2（実線）',
-      x:s.xs, y:s.ys, z:s.zs, line:{ color:'rgba(200,200,200,0.6)', width:sz(1.5) } }
+      x:s.xs, y:s.ys, z:s.zs, line:{ color:tNow().lineColor, width:sz(1.5) } }
   ];
 }
 
@@ -447,8 +454,8 @@ async function startAnimation() {
     helixTrace,
     { type:'scatter3d', mode:'markers', name:'b(n) 青系',  x:[], y:[], z:[], marker:{color:[], size:6, opacity:0.9} },
     { type:'scatter3d', mode:'markers', name:'a(n) 赤系',  x:[], y:[], z:[], marker:{color:[], size:6, opacity:0.9} },
-    { type:'scatter3d', mode:'lines',   name:'÷2（破線）', x:[], y:[], z:[], line:{color:'rgba(255,180,60,0.8)', width:sz(2), dash:'dash'} },
-    { type:'scatter3d', mode:'lines',   name:'×3/2（実線）',x:[], y:[], z:[], line:{color:'rgba(200,200,200,0.6)', width:sz(1.5)} }
+    { type:'scatter3d', mode:'lines',   name:'÷2（破線）', x:[], y:[], z:[], line:{color:tNow().dashColor, width:sz(2), dash:'dash'} },
+    { type:'scatter3d', mode:'lines',   name:'×3/2（実線）',x:[], y:[], z:[], line:{color:tNow().lineColor, width:sz(1.5)} }
   ], buildLayout(cam));
 
   const pX=[], pY=[], pZ=[], pC=[];
