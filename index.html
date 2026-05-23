@@ -174,7 +174,6 @@ function currentCamera() {
 }
 
 function buildLayout(camera) {
-  const cam = camera ?? currentCamera();
   return {
     paper_bgcolor: '#0f1117',
     plot_bgcolor: '#0f1117',
@@ -184,7 +183,7 @@ function buildLayout(camera) {
       yaxis: axisStyle('Y'),
       zaxis: axisStyle('Z'),
       bgcolor: '#0f1117',
-      ...(cam ? { camera: cam } : {})
+      ...(camera ? { camera } : {})
     },
     uirevision: 'keep'
   };
@@ -352,7 +351,7 @@ async function startAnimation() {
       x:[...cX], y:[...cY], z:[...cZ], line:{ color:'rgba(255,180,60,0.8)', width:2, dash:'dash' } });
     if (sX.length) tr.push({ type:'scatter3d', mode:'lines', name:'×3/2（実線）',
       x:[...sX], y:[...sY], z:[...sZ], line:{ color:'rgba(200,200,200,0.6)', width:1.5 } });
-    Plotly.react('plot', tr, buildLayout(cam));
+    Plotly.react('plot', tr, buildLayout());
   };
 
   Plotly.react('plot', [helixTrace], buildLayout(cam));
